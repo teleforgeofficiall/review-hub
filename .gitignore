@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Python
+*.pyc
+*.pyo
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Docker
+docker-compose.override.yml
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Temp / Dev scripts
+fix_seed.py
+temp_deploy.py
+temp_logs.py
+deploy_bot.py
+deploy_fix.py
+_t.py
+logs.txt
+admin.txt
+admin_panel.html
+admin_responsive.html
+PROMPT.txt
+stitch_review_hub_mobile_demo.zip
+stitch_temp/
+screenshots/
+admin-panel/
+ui/
