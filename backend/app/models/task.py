@@ -18,6 +18,13 @@ class Task(Base):
     is_active = Column(Boolean, default=True)
     max_submissions = Column(Integer, nullable=True)  # null = unlimited
     current_submissions = Column(Integer, default=0)
+    task_variant = Column(String(20), nullable=False, default="single")  # single / bulk
+    bulk_reward = Column(Numeric(10, 2), nullable=True)
+    bulk_unlock_threshold = Column(Integer, default=5)
+    process_video_url = Column(Text, nullable=True)
+    comment_slots = Column(Text, nullable=True)  # JSON string: 10 comment slots
+    app_link = Column(Text, nullable=True)
+    submit_fields = Column(Text, nullable=True)  # JSON string: custom fields for gmail work
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

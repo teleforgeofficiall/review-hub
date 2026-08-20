@@ -13,6 +13,7 @@ class Submission(Base):
     status = Column(String(20), nullable=False, default="pending")  # pending / approved / rejected
     proof_url = Column(Text, nullable=True)
     proof_text = Column(Text, nullable=True)
+    slot_index = Column(Integer, nullable=True)
     admin_note = Column(Text, nullable=True)
     reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     reviewed_at = Column(DateTime, nullable=True)

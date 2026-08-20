@@ -12,6 +12,13 @@ class TaskCreate(BaseModel):
     proof_required: bool = True
     instructions: Optional[str] = None
     max_submissions: Optional[int] = None
+    task_variant: str = "single"
+    bulk_reward: Optional[float] = None
+    bulk_unlock_threshold: int = 5
+    process_video_url: Optional[str] = None
+    comment_slots: Optional[str] = None
+    app_link: Optional[str] = None
+    submit_fields: Optional[str] = None
 
 
 class TaskUpdate(BaseModel):
@@ -24,6 +31,13 @@ class TaskUpdate(BaseModel):
     instructions: Optional[str] = None
     is_active: Optional[bool] = None
     max_submissions: Optional[int] = None
+    task_variant: Optional[str] = None
+    bulk_reward: Optional[float] = None
+    bulk_unlock_threshold: Optional[int] = None
+    process_video_url: Optional[str] = None
+    comment_slots: Optional[str] = None
+    app_link: Optional[str] = None
+    submit_fields: Optional[str] = None
 
 
 class TaskResponse(BaseModel):
@@ -38,6 +52,13 @@ class TaskResponse(BaseModel):
     is_active: bool
     max_submissions: Optional[int] = None
     current_submissions: int
+    task_variant: str
+    bulk_reward: Optional[float] = None
+    bulk_unlock_threshold: int
+    process_video_url: Optional[str] = None
+    comment_slots: Optional[str] = None
+    app_link: Optional[str] = None
+    submit_fields: Optional[str] = None
     created_at: datetime
 
     class Config:

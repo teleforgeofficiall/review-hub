@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,3 +49,19 @@ async def get_stats(
         "withdrawals": {"pending": pending_withdrawals, "total_payout": float(total_payout)},
         "total_balance": float(total_balance),
     }
+
+
+@router.get("/user-completed-singles/{user_id}/{task_type}")
+async def get_user_completed_singles(user_id: int, task_type: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(func.count(Submission.id))
+        .join(Task, Submission.task_id == Task.id)
+        .where(
+            Submission.user_id == user_id,
+            Submission.status == "approved",
+            Task.task_type == task_type,
+            Task.task_variant == "single",
+        )
+    )
+    count = result.scalar() or 0
+    return {"completed_singles": count}

@@ -8,6 +8,8 @@ interface Submission {
   admin_note: string | null;
   created_at: string;
   task_title?: string;
+  task_variant?: string;
+  slot_number?: number;
 }
 
 const statusConfig: Record<string, { label: string; pillBg: string; pillFg: string; pillBorder: string; accent: string }> = {
@@ -32,11 +34,12 @@ export default function SubmissionsPage() {
       api.get("/tasks"),
     ])
       .then(([subsRes, tasksRes]) => {
-        const taskMap: Record<number, string> = {};
-        tasksRes.data.forEach((t: any) => { taskMap[t.id] = t.title; });
+        const taskMap: Record<number, { title: string; task_variant?: string }> = {};
+        tasksRes.data.forEach((t: any) => { taskMap[t.id] = { title: t.title, task_variant: t.task_variant }; });
         const subs = subsRes.data.map((s: any) => ({
           ...s,
-          task_title: taskMap[s.task_id] || `Task #${s.task_id}`,
+          task_title: taskMap[s.task_id]?.title || `Task #${s.task_id}`,
+          task_variant: taskMap[s.task_id]?.task_variant,
         }));
         setSubmissions(subs);
       })
@@ -87,9 +90,27 @@ export default function SubmissionsPage() {
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-[14px] font-bold truncate" style={{ color: "#191c1e" }}>
-                      {sub.task_title}
-                    </h4>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h4 className="text-[14px] font-bold truncate" style={{ color: "#191c1e" }}>
+                        {sub.task_title}
+                      </h4>
+                      {sub.task_variant && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[9px] font-bold flex-shrink-0"
+                          style={{
+                            background: sub.task_variant === "bulk" ? "#ede9fe" : "#e0f2fe",
+                            color: sub.task_variant === "bulk" ? "#630ed4" : "#0284c7",
+                          }}
+                        >
+                          {sub.task_variant === "bulk" ? "Bulk" : "Single"}
+                        </span>
+                      )}
+                    </div>
+                    {sub.task_variant === "bulk" && sub.slot_number && (
+                      <p className="text-[10px] font-medium" style={{ color: "#7b7487" }}>
+                        Slot #{sub.slot_number}
+                      </p>
+                    )}
                     <p className="text-[10px] mt-0.5" style={{ color: "#4a4455" }}>
                       {new Date(sub.created_at).toLocaleDateString("en-IN", {
                         day: "numeric",

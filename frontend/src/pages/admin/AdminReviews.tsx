@@ -12,6 +12,11 @@ interface Submission {
   created_at: string;
   task_title?: string;
   instructions?: string;
+  task_type?: string;
+  variant?: string;
+  bulk_slot?: number | null;
+  comment_slots?: string[];
+  submit_data?: Record<string, string> | null;
 }
 
 const filters = ["All", "Pending", "Approved", "Rejected"];
@@ -41,12 +46,23 @@ export default function AdminReviews() {
       api.get("/tasks"),
     ])
       .then(([subsRes, tasksRes]) => {
-        const taskMap: Record<number, { title: string; instructions: string | null }> = {};
-        tasksRes.data.forEach((t: any) => { taskMap[t.id] = { title: t.title, instructions: t.instructions }; });
+        const taskMap: Record<number, { title: string; instructions: string | null; task_type: string; variant: string; comment_slots: string[] | null }> = {};
+        tasksRes.data.forEach((t: any) => {
+          taskMap[t.id] = {
+            title: t.title,
+            instructions: t.instructions,
+            task_type: t.task_type,
+            variant: t.variant || "single",
+            comment_slots: t.comment_slots || null,
+          };
+        });
         const subs = subsRes.data.map((s: any) => ({
           ...s,
           task_title: taskMap[s.task_id]?.title || `Task #${s.task_id}`,
           instructions: taskMap[s.task_id]?.instructions || "",
+          task_type: taskMap[s.task_id]?.task_type || "",
+          variant: taskMap[s.task_id]?.variant || "single",
+          comment_slots: taskMap[s.task_id]?.comment_slots || null,
         }));
         setSubmissions(subs);
       })
@@ -167,7 +183,14 @@ export default function AdminReviews() {
                     </p>
                   </div>
                 </div>
-                <span className={`status-pill ${statusColor(sub.status)}`}>{sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}</span>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {sub.variant === "bulk" && sub.bulk_slot != null && (
+                    <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#fef3c7", color: "#92400e" }}>
+                      SLOT #{sub.bulk_slot}
+                    </span>
+                  )}
+                  <span className={`status-pill ${statusColor(sub.status)}`}>{sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}</span>
+                </div>
               </div>
               <p className="text-xs font-medium mb-1" style={{ color: "#191c1e" }}>{sub.task_title}</p>
               {sub.proof_url && (
@@ -214,6 +237,44 @@ export default function AdminReviews() {
                 </p>
               </div>
             </div>
+
+            {/* Bulk slot info */}
+            {reviewing.variant === "bulk" && reviewing.bulk_slot != null && (
+              <div className="rounded-lg p-2.5 mb-3" style={{ background: "#fef3c7" }}>
+                <p className="text-[10px] font-semibold mb-0.5" style={{ color: "#92400e" }}>Bulk Submission</p>
+                <p className="text-xs font-medium" style={{ color: "#92400e" }}>Fills Slot #{reviewing.bulk_slot}</p>
+              </div>
+            )}
+
+            {/* Comment slots for App Review */}
+            {reviewing.task_type === "app_rating" && reviewing.comment_slots && reviewing.comment_slots.length > 0 && (
+              <div className="rounded-lg p-2.5 mb-3" style={{ background: "#eff6ff" }}>
+                <p className="text-[10px] font-semibold mb-1" style={{ color: "#2563eb" }}>Comment Slots</p>
+                <div className="space-y-1">
+                  {reviewing.comment_slots.map((slot, i) => (
+                    <div key={i} className="flex items-start gap-1.5">
+                      <span className="text-[9px] font-bold mt-0.5" style={{ color: "#7b7487" }}>#{i + 1}</span>
+                      <p className="text-[11px]" style={{ color: "#191c1e" }}>{slot}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Submit data for Gmail Work */}
+            {reviewing.task_type === "gmail_work" && reviewing.submit_data && Object.keys(reviewing.submit_data).length > 0 && (
+              <div className="rounded-lg p-2.5 mb-3" style={{ background: "#fef2f2" }}>
+                <p className="text-[10px] font-semibold mb-1" style={{ color: "#dc2626" }}>Submit Data</p>
+                <div className="space-y-1">
+                  {Object.entries(reviewing.submit_data).map(([key, val]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold capitalize" style={{ color: "#4a4455" }}>{key}:</span>
+                      <p className="text-[11px]" style={{ color: "#191c1e" }}>{val}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {reviewing.proof_url && (
               <a

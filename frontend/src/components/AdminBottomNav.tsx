@@ -2,6 +2,8 @@ const tabs = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
   { id: "tasks", label: "Tasks", icon: "assignment" },
   { id: "reviews", label: "Reviews", icon: "rate_review" },
+  { id: "withdrawals", label: "Payouts", icon: "payments" },
+  { id: "users", label: "Users", icon: "people" },
   { id: "profile", label: "Profile", icon: "admin_panel_settings" },
 ];
 

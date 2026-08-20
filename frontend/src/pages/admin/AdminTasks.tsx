@@ -6,6 +6,12 @@ interface Task {
   title: string;
   task_type: string;
   reward: number;
+  bulk_reward: number | null;
+  variant: "single" | "bulk";
+  video_url: string | null;
+  app_link: string | null;
+  comment_slots: string[] | null;
+  submit_fields: { name: boolean; email: boolean; password: boolean } | null;
   current_submissions: number;
   max_submissions: number | null;
   is_active: boolean;
@@ -32,7 +38,19 @@ export default function AdminTasks() {
   const [selected, setSelected] = useState<Task | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState({ title: "", category: "Gmail", reward: "", description: "", instructions: "" });
+  const [form, setForm] = useState({
+    title: "",
+    category: "Gmail",
+    reward: "",
+    description: "",
+    instructions: "",
+    variant: "single" as "single" | "bulk",
+    bulk_reward: "",
+    video_url: "",
+    app_link: "",
+    comment_slots: ["", "", "", "", "", "", "", "", "", ""],
+    submit_fields: { name: true, email: true, password: true },
+  });
 
   function fetchTasks() {
     api.get("/tasks")
@@ -49,12 +67,35 @@ export default function AdminTasks() {
     return true;
   });
 
+  function resetForm() {
+    setForm({
+      title: "", category: "Gmail", reward: "", description: "", instructions: "",
+      variant: "single", bulk_reward: "", video_url: "", app_link: "",
+      comment_slots: ["", "", "", "", "", "", "", "", "", ""],
+      submit_fields: { name: true, email: true, password: true },
+    });
+  }
+
   function openCreate() {
-    setForm({ title: "", category: "Gmail", reward: "", description: "", instructions: "" });
+    resetForm();
     setShowCreate(true);
   }
   function openEdit(t: Task) {
-    setForm({ title: t.title, category: catMap[t.task_type] || "Gmail", reward: String(t.reward), description: t.description || "", instructions: t.instructions || "" });
+    setForm({
+      title: t.title,
+      category: catMap[t.task_type] || "Gmail",
+      reward: String(t.reward),
+      description: t.description || "",
+      instructions: t.instructions || "",
+      variant: t.variant || "single",
+      bulk_reward: t.bulk_reward ? String(t.bulk_reward) : "",
+      video_url: t.video_url || "",
+      app_link: t.app_link || "",
+      comment_slots: t.comment_slots && t.comment_slots.length >= 10
+        ? [...t.comment_slots]
+        : ["", "", "", "", "", "", "", "", "", ""],
+      submit_fields: t.submit_fields || { name: true, email: true, password: true },
+    });
     setSelected(t);
     setShowEdit(true);
   }
@@ -64,14 +105,27 @@ export default function AdminTasks() {
     if (!form.title.trim() || !form.reward) return;
     setSaving(true);
     try {
-      await api.post("/tasks", {
+      const payload: any = {
         title: form.title.trim(),
         task_type: revCatMap[form.category] || "gmail_work",
         reward: Number(form.reward),
         description: form.description.trim() || null,
         instructions: form.instructions.trim() || null,
+        variant: form.variant,
         proof_required: true,
-      });
+      };
+      if (form.variant === "bulk" && form.bulk_reward) {
+        payload.bulk_reward = Number(form.bulk_reward);
+      }
+      if (form.video_url.trim()) payload.video_url = form.video_url.trim();
+      if (form.category === "Apps") {
+        payload.app_link = form.app_link.trim() || null;
+        payload.comment_slots = form.comment_slots.filter((s) => s.trim());
+      }
+      if (form.category === "Gmail") {
+        payload.submit_fields = form.submit_fields;
+      }
+      await api.post("/tasks", payload);
       setShowCreate(false);
       fetchTasks();
     } catch (e: any) { alert(e.response?.data?.detail || "Failed"); }
@@ -82,13 +136,26 @@ export default function AdminTasks() {
     if (!selected) return;
     setSaving(true);
     try {
-      await api.put(`/tasks/${selected.id}`, {
+      const payload: any = {
         title: form.title.trim(),
         task_type: revCatMap[form.category] || "gmail_work",
         reward: Number(form.reward),
         description: form.description.trim() || null,
         instructions: form.instructions.trim() || null,
-      });
+        variant: form.variant,
+      };
+      if (form.variant === "bulk" && form.bulk_reward) {
+        payload.bulk_reward = Number(form.bulk_reward);
+      }
+      if (form.video_url.trim()) payload.video_url = form.video_url.trim();
+      if (form.category === "Apps") {
+        payload.app_link = form.app_link.trim() || null;
+        payload.comment_slots = form.comment_slots.filter((s) => s.trim());
+      }
+      if (form.category === "Gmail") {
+        payload.submit_fields = form.submit_fields;
+      }
+      await api.put(`/tasks/${selected.id}`, payload);
       setShowEdit(false);
       fetchTasks();
     } catch (e: any) { alert(e.response?.data?.detail || "Failed"); }
@@ -125,6 +192,23 @@ export default function AdminTasks() {
     </div>
   );
 
+  const VariantPicker = ({ value, onChange }: { value: string; onChange: (v: "single" | "bulk") => void }) => (
+    <div>
+      <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "#4a4455" }}>Task Variant</label>
+      <div className="flex gap-2">
+        {(["single", "bulk"] as const).map((v) => (
+          <button key={v} type="button" onClick={() => onChange(v)}
+            className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition-colors capitalize"
+            style={{
+              background: value === v ? "#4800a0" : "#f0e6ff",
+              color: value === v ? "#fff" : "#4800a0",
+            }}
+          >{v}</button>
+        ))}
+      </div>
+    </div>
+  );
+
   const TaskForm = () => (
     <div className="space-y-3">
       <div>
@@ -135,6 +219,7 @@ export default function AdminTasks() {
           style={{ border: "1px solid #e0e0e0", color: "#191c1e" }} />
       </div>
       <CategoryPicker value={form.category} onChange={(c) => setForm({ ...form, category: c })} />
+      <VariantPicker value={form.variant} onChange={(v) => setForm({ ...form, variant: v })} />
       <div>
         <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "#4a4455" }}>Reward (₹)</label>
         <input type="number" placeholder="e.g. 10" value={form.reward} min="1"
@@ -142,6 +227,66 @@ export default function AdminTasks() {
           className="w-full px-3 py-2.5 rounded-lg text-[13px] outline-none"
           style={{ border: "1px solid #e0e0e0", color: "#191c1e" }} />
       </div>
+      {form.variant === "bulk" && (
+        <div>
+          <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "#4a4455" }}>Bulk Reward (₹ per sub-task)</label>
+          <input type="number" placeholder="e.g. 5" value={form.bulk_reward} min="1"
+            onChange={(e) => setForm({ ...form, bulk_reward: e.target.value })}
+            className="w-full px-3 py-2.5 rounded-lg text-[13px] outline-none"
+            style={{ border: "1px solid #e0e0e0", color: "#191c1e" }} />
+        </div>
+      )}
+      <div>
+        <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "#4a4455" }}>Process Video URL</label>
+        <input type="url" placeholder="https://youtube.com/watch?v=..." value={form.video_url}
+          onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+          className="w-full px-3 py-2.5 rounded-lg text-[13px] outline-none"
+          style={{ border: "1px solid #e0e0e0", color: "#191c1e" }} />
+      </div>
+      {form.category === "Apps" && (
+        <div>
+          <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "#4a4455" }}>App Link</label>
+          <input type="url" placeholder="https://play.google.com/store/apps/..." value={form.app_link}
+            onChange={(e) => setForm({ ...form, app_link: e.target.value })}
+            className="w-full px-3 py-2.5 rounded-lg text-[13px] outline-none"
+            style={{ border: "1px solid #e0e0e0", color: "#191c1e" }} />
+        </div>
+      )}
+      {form.category === "Apps" && (
+        <div>
+          <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "#4a4455" }}>Comment Slots (templates)</label>
+          <div className="space-y-1.5">
+            {form.comment_slots.map((slot, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold w-5 text-center" style={{ color: "#7b7487" }}>{i + 1}</span>
+                <input type="text" placeholder={`Comment template #${i + 1}`} value={slot}
+                  onChange={(e) => {
+                    const slots = [...form.comment_slots];
+                    slots[i] = e.target.value;
+                    setForm({ ...form, comment_slots: slots });
+                  }}
+                  className="flex-1 px-3 py-2 rounded-lg text-[12px] outline-none"
+                  style={{ border: "1px solid #e0e0e0", color: "#191c1e" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {form.category === "Gmail" && (
+        <div>
+          <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "#4a4455" }}>Submit Fields</label>
+          <div className="flex gap-3">
+            {(["name", "email", "password"] as const).map((f) => (
+              <label key={f} className="flex items-center gap-1.5 text-[12px] font-medium capitalize" style={{ color: "#4a4455" }}>
+                <input type="checkbox" checked={form.submit_fields[f]}
+                  onChange={(e) => setForm({ ...form, submit_fields: { ...form.submit_fields, [f]: e.target.checked } })}
+                  className="w-4 h-4 rounded accent-[#4800a0]" />
+                {f}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
       <div>
         <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "#4a4455" }}>Description</label>
         <textarea placeholder="Short description for users" value={form.description} rows={2}
@@ -221,6 +366,7 @@ export default function AdminTasks() {
           {filtered.map((t) => {
             const cat = catMap[t.task_type] || "Other";
             const cs = catStyle[cat] || { bg: "#f3f4f6", fg: "#6b7280", icon: "help" };
+            const isBulk = t.variant === "bulk";
             return (
               <div key={t.id} className="glass-card rounded-xl overflow-hidden">
                 {/* Main row */}
@@ -229,7 +375,12 @@ export default function AdminTasks() {
                     <span className="material-symbols-outlined text-[16px]" style={{ color: cs.fg, fontVariationSettings: "'FILL' 1" }}>{cs.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold leading-tight truncate" style={{ color: "#191c1e" }}>{t.title}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[13px] font-semibold leading-tight truncate" style={{ color: "#191c1e" }}>{t.title}</p>
+                      {isBulk && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#fef3c7", color: "#92400e" }}>BULK</span>
+                      )}
+                    </div>
                     <p className="text-[10px] leading-tight mt-0.5" style={{ color: "#4a4455" }}>{cat} · {t.current_submissions} submitted</p>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">

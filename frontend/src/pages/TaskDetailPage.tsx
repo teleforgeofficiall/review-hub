@@ -7,6 +7,7 @@ interface Task {
   title: string;
   description: string | null;
   task_type: string;
+  task_variant?: string;
   reward: number;
   instructions: string | null;
   proof_required: boolean;
@@ -21,6 +22,7 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [proofText, setProofText] = useState("");
   const [proofUrl, setProofUrl] = useState("");
+  const [commentSlots, setCommentSlots] = useState<string[]>(Array(10).fill(""));
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -34,25 +36,55 @@ export default function TaskDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const updateCommentSlot = (index: number, value: string) => {
+    const next = [...commentSlots];
+    next[index] = value;
+    setCommentSlots(next);
+  };
+
   const handleSubmit = async () => {
     if (!task || submitting) return;
-    if (!proofUrl.trim() && !proofText.trim()) {
-      setError("Please provide proof (URL or notes)");
-      return;
-    }
-    setSubmitting(true);
-    setError("");
-    try {
-      await api.post("/submissions", {
-        task_id: task.id,
-        proof_url: proofUrl.trim() || null,
-        proof_text: proofText.trim() || null,
-      });
-      setSubmitted(true);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to submit");
-    } finally {
-      setSubmitting(false);
+
+    const isBulk = task.task_variant === "bulk";
+
+    if (isBulk) {
+      const filled = commentSlots.filter((s) => s.trim());
+      if (filled.length === 0) {
+        setError("Please fill at least one comment slot");
+        return;
+      }
+      setSubmitting(true);
+      setError("");
+      try {
+        await api.post("/submissions", {
+          task_id: task.id,
+          comments: filled,
+        });
+        setSubmitted(true);
+      } catch (err: any) {
+        setError(err.response?.data?.detail || "Failed to submit");
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      if (!proofUrl.trim() && !proofText.trim()) {
+        setError("Please provide proof (URL or notes)");
+        return;
+      }
+      setSubmitting(true);
+      setError("");
+      try {
+        await api.post("/submissions", {
+          task_id: task.id,
+          proof_url: proofUrl.trim() || null,
+          proof_text: proofText.trim() || null,
+        });
+        setSubmitted(true);
+      } catch (err: any) {
+        setError(err.response?.data?.detail || "Failed to submit");
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -145,40 +177,75 @@ export default function TaskDetailPage() {
       </div>
 
       <div className="glass-card rounded-xl p-4">
-        <h3 className="text-[16px] font-bold mb-3" style={{ color: "#191c1e" }}>Submit Proof</h3>
-        {error && (
-          <div className="mb-3 px-3 py-2 rounded-lg text-[12px] font-medium" style={{ background: "#fee2e2", color: "#991b1b" }}>
-            {error}
-          </div>
+        {task.task_variant === "bulk" ? (
+          <>
+            <h3 className="text-[16px] font-bold mb-3" style={{ color: "#191c1e" }}>
+              Comment Slots ({commentSlots.filter((s) => s.trim()).length}/10)
+            </h3>
+            {error && (
+              <div className="mb-3 px-3 py-2 rounded-lg text-[12px] font-medium" style={{ background: "#fee2e2", color: "#991b1b" }}>
+                {error}
+              </div>
+            )}
+            <div className="flex flex-col gap-2 mb-4">
+              {commentSlots.map((slot, i) => (
+                <input
+                  key={i}
+                  type="text"
+                  value={slot}
+                  onChange={(e) => updateCommentSlot(i, e.target.value)}
+                  placeholder={`Comment #${i + 1}`}
+                  className="app-input"
+                />
+              ))}
+            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full btn-3d rounded-xl py-3 text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
+              {submitting ? "Submitting..." : "Submit All Comments"}
+            </button>
+          </>
+        ) : (
+          <>
+            <h3 className="text-[16px] font-bold mb-3" style={{ color: "#191c1e" }}>Submit Proof</h3>
+            {error && (
+              <div className="mb-3 px-3 py-2 rounded-lg text-[12px] font-medium" style={{ background: "#fee2e2", color: "#991b1b" }}>
+                {error}
+              </div>
+            )}
+            <div className="mb-3">
+              <label className="block text-[12px] font-bold mb-1" style={{ color: "#4a4455" }}>Screenshot URL</label>
+              <input
+                type="url"
+                value={proofUrl}
+                onChange={(e) => setProofUrl(e.target.value)}
+                placeholder="https://prnt.sc/..."
+                className="app-input"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-[12px] font-bold mb-1" style={{ color: "#4a4455" }}>Additional Notes</label>
+              <textarea
+                value={proofText}
+                onChange={(e) => setProofText(e.target.value)}
+                placeholder="Any comments for the admin..."
+                rows={3}
+                className="app-input resize-none"
+              />
+            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full btn-3d rounded-xl py-3 text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
+              {submitting ? "Submitting..." : "Submit Proof"}
+            </button>
+          </>
         )}
-        <div className="mb-3">
-          <label className="block text-[12px] font-bold mb-1" style={{ color: "#4a4455" }}>Screenshot URL</label>
-          <input
-            type="url"
-            value={proofUrl}
-            onChange={(e) => setProofUrl(e.target.value)}
-            placeholder="https://prnt.sc/..."
-            className="app-input"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-[12px] font-bold mb-1" style={{ color: "#4a4455" }}>Additional Notes</label>
-          <textarea
-            value={proofText}
-            onChange={(e) => setProofText(e.target.value)}
-            placeholder="Any comments for the admin..."
-            rows={3}
-            className="app-input resize-none"
-          />
-        </div>
-        <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="w-full btn-3d rounded-xl py-3 text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
-          {submitting ? "Submitting..." : "Submit Proof"}
-        </button>
       </div>
     </>
   );

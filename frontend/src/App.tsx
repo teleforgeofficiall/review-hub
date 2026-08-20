@@ -10,10 +10,15 @@ import SubmissionsPage from "./pages/SubmissionsPage";
 import WalletPage from "./pages/WalletPage";
 import ProfilePage from "./pages/ProfilePage";
 import AuthErrorPage from "./pages/AuthErrorPage";
+import MapReviewPage from "./pages/MapReviewPage";
+import AppReviewPage from "./pages/AppReviewPage";
+import GmailWorkPage from "./pages/GmailWorkPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminTasks from "./pages/admin/AdminTasks";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminProfile from "./pages/admin/AdminProfile";
+import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
 function ProtectedRoute() {
   const { isAuthenticated } = useAuthStore();
@@ -60,6 +65,8 @@ function AdminRoute() {
     const path = location.pathname;
     if (path === "/admin/tasks") return "tasks";
     if (path === "/admin/reviews") return "reviews";
+    if (path === "/admin/withdrawals") return "withdrawals";
+    if (path === "/admin/users") return "users";
     if (path === "/admin/profile") return "profile";
     return "dashboard";
   });
@@ -72,6 +79,8 @@ function AdminRoute() {
       dashboard: "/admin",
       tasks: "/admin/tasks",
       reviews: "/admin/reviews",
+      withdrawals: "/admin/withdrawals",
+      users: "/admin/users",
       profile: "/admin/profile",
     };
     window.location.href = routeMap[tab] || "/admin";
@@ -98,6 +107,9 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/tasks/:id" element={<TaskDetailPage />} />
+          <Route path="/map-review" element={<MapReviewPage />} />
+          <Route path="/app-review" element={<AppReviewPage />} />
+          <Route path="/gmail-work" element={<GmailWorkPage />} />
           <Route path="/submissions" element={<SubmissionsPage />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/profile" element={<ProfilePage />} />
@@ -108,6 +120,8 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="tasks" element={<AdminTasks />} />
           <Route path="reviews" element={<AdminReviews />} />
+          <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
           <Route path="profile" element={<AdminProfile />} />
         </Route>
 

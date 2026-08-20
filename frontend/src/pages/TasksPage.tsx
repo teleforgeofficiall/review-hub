@@ -17,6 +17,12 @@ const typeConfig: Record<string, { icon: string; bg: string; fg: string }> = {
   map_review: { icon: "location_on", bg: "#eff6ff", fg: "#2563eb" },
 };
 
+const categoryRoutes: Record<string, string> = {
+  map_review: "/map-review",
+  app_rating: "/app-review",
+  gmail_work: "/gmail-work",
+};
+
 const filters = [
   { key: "all", label: "All Tasks" },
   { key: "map_review", label: "Maps" },
@@ -96,7 +102,14 @@ export default function TasksPage() {
             return (
               <button
                 key={task.id}
-                onClick={() => navigate(`/tasks/${task.id}`)}
+                onClick={() => {
+                  const route = categoryRoutes[task.task_type];
+                  if (route) {
+                    navigate(route);
+                  } else {
+                    navigate(`/tasks/${task.id}`);
+                  }
+                }}
                 className="glass-card rounded-xl px-4 py-3 text-left active:scale-[0.98] transition-transform duration-150"
               >
                 <div className="flex items-center gap-3">

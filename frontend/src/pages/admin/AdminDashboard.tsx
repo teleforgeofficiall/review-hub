@@ -9,6 +9,11 @@ interface Stats {
   total_balance: number;
 }
 
+interface Task {
+  id: number;
+  variant?: string;
+}
+
 interface RecentSub {
   id: number;
   user_id: number;
@@ -17,6 +22,7 @@ interface RecentSub {
   created_at: string;
   user_name?: string;
   task_title?: string;
+  task_variant?: string;
 }
 
 function statusColor(s: string) {
@@ -29,6 +35,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<RecentSub[]>([]);
   const [loading, setLoading] = useState(true);
+  const [variantStats, setVariantStats] = useState({ single: 0, bulk: 0 });
 
   useEffect(() => {
     Promise.all([
@@ -38,11 +45,19 @@ export default function AdminDashboard() {
     ])
       .then(([statsRes, subsRes, tasksRes]) => {
         setStats(statsRes.data);
-        const taskMap: Record<number, string> = {};
-        tasksRes.data.forEach((t: any) => { taskMap[t.id] = t.title; });
+        const taskMap: Record<number, { title: string; variant: string }> = {};
+        let single = 0;
+        let bulk = 0;
+        tasksRes.data.forEach((t: any) => {
+          taskMap[t.id] = { title: t.title, variant: t.variant || "single" };
+          if (t.variant === "bulk") bulk++;
+          else single++;
+        });
+        setVariantStats({ single, bulk });
         const subs = subsRes.data.slice(0, 5).map((s: any) => ({
           ...s,
-          task_title: taskMap[s.task_id] || `Task #${s.task_id}`,
+          task_title: taskMap[s.task_id]?.title || `Task #${s.task_id}`,
+          task_variant: taskMap[s.task_id]?.variant || "single",
         }));
         setRecent(subs);
       })
@@ -99,6 +114,23 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* Task Variant Breakdown */}
+      {(variantStats.single > 0 || variantStats.bulk > 0) && (
+        <div className="glass-card rounded-xl p-3 mb-3">
+          <h2 className="text-sm font-semibold mb-2" style={{ color: "#191c1e" }}>Task Variants</h2>
+          <div className="flex gap-2">
+            <div className="flex-1 rounded-lg p-2 text-center" style={{ background: "#f0e6ff" }}>
+              <p className="text-[10px] font-medium" style={{ color: "#4a4455" }}>Single</p>
+              <p className="text-lg font-bold" style={{ color: "#4800a0" }}>{variantStats.single}</p>
+            </div>
+            <div className="flex-1 rounded-lg p-2 text-center" style={{ background: "#fef3c7" }}>
+              <p className="text-[10px] font-medium" style={{ color: "#4a4455" }}>Bulk</p>
+              <p className="text-lg font-bold" style={{ color: "#92400e" }}>{variantStats.bulk}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="glass-card rounded-xl p-3 mb-3">
         <h2 className="text-sm font-semibold mb-2.5" style={{ color: "#191c1e" }}>Recent Submissions</h2>
         {recent.length === 0 ? (
@@ -116,7 +148,12 @@ export default function AdminDashboard() {
                     <p className="text-[10px] truncate" style={{ color: "#4a4455" }}>{item.task_title}</p>
                   </div>
                 </div>
-                <span className={`status-pill ${statusColor(item.status)}`}>{item.status.charAt(0).toUpperCase() + item.status.slice(1)}</span>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {item.task_variant === "bulk" && (
+                    <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#fef3c7", color: "#92400e" }}>BULK</span>
+                  )}
+                  <span className={`status-pill ${statusColor(item.status)}`}>{item.status.charAt(0).toUpperCase() + item.status.slice(1)}</span>
+                </div>
               </div>
             ))}
           </div>

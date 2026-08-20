@@ -2,9 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 
 const actions = [
-  { label: "Map Reviews", icon: "map", bg: "#eff6ff", fg: "#2563eb", filter: "map_review" },
-  { label: "App Ratings", icon: "star", bg: "#f0fdf4", fg: "#16a34a", filter: "app_rating" },
-  { label: "Gmail Work", icon: "mail", bg: "#fef2f2", fg: "#dc2626", filter: "gmail_work" },
+  { label: "Map Reviews", icon: "map", bg: "#eff6ff", fg: "#2563eb", route: "/map-review" },
+  { label: "App Ratings", icon: "star", bg: "#f0fdf4", fg: "#16a34a", route: "/app-review" },
+  { label: "Gmail Work", icon: "mail", bg: "#fef2f2", fg: "#dc2626", route: "/gmail-work" },
 ];
 
 export default function HomePage() {
@@ -74,8 +74,8 @@ export default function HomePage() {
       <div className="flex gap-3 overflow-x-auto hide-scroll pb-1">
         {actions.map((a) => (
           <button
-            key={a.filter}
-            onClick={() => navigate(`/tasks?type=${a.filter}`)}
+            key={a.route}
+            onClick={() => navigate(a.route)}
             className="glass-card rounded-xl px-4 py-4 flex flex-col items-center gap-2 min-w-[100px] flex-shrink-0 active:scale-[0.96] transition-transform duration-150"
           >
             <div

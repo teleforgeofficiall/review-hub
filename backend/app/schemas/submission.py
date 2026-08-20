@@ -21,6 +21,7 @@ class SubmissionResponse(BaseModel):
     status: str
     proof_url: Optional[str] = None
     proof_text: Optional[str] = None
+    slot_index: Optional[int] = None
     admin_note: Optional[str] = None
     reviewed_by: Optional[int] = None
     reviewed_at: Optional[datetime] = None

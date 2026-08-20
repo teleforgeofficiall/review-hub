@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+import json
 
 from app.database import get_db
 from app.models.user import User
@@ -28,21 +29,37 @@ async def create_submission(
     if task.max_submissions and task.current_submissions >= task.max_submissions:
         raise HTTPException(status_code=400, detail="Task submission limit reached")
 
-    existing = await db.execute(
-        select(Submission).where(
-            Submission.user_id == user.id,
-            Submission.task_id == req.task_id,
-            Submission.status.in_(["pending", "approved"]),
+    slot_index = None
+    if task.task_variant == "bulk":
+        existing_result = await db.execute(
+            select(func.count(Submission.id)).where(
+                Submission.user_id == user.id,
+                Submission.task_id == req.task_id,
+                Submission.status.in_(["pending", "approved"]),
+            )
         )
-    )
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Already submitted this task")
+        existing_count = existing_result.scalar() or 0
+        max_slots = len(json.loads(task.comment_slots)) if task.comment_slots else 10
+        if existing_count >= max_slots:
+            raise HTTPException(status_code=400, detail="All comment slots filled")
+        slot_index = existing_count
+    else:
+        existing = await db.execute(
+            select(Submission).where(
+                Submission.user_id == user.id,
+                Submission.task_id == req.task_id,
+                Submission.status.in_(["pending", "approved"]),
+            )
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Already submitted this task")
 
     submission = Submission(
         user_id=user.id,
         task_id=req.task_id,
         proof_url=req.proof_url,
         proof_text=req.proof_text,
+        slot_index=slot_index,
     )
     db.add(submission)
     task.current_submissions += 1
