@@ -2,7 +2,6 @@ import hashlib
 import hmac
 import json
 import time
-from urllib.parse import unquote
 
 
 class AuthError:
@@ -39,38 +38,28 @@ def validate_telegram_init_data(init_data: str, bot_token: str) -> AuthResult:
                 detail="Empty init_data",
             )
 
-        params = {}
+        # Split into raw key=value pairs (keep URL-encoding intact for HMAC)
+        raw_pairs = {}
         for pair in init_data.split("&"):
             if "=" not in pair:
                 continue
             key, value = pair.split("=", 1)
-            key = unquote(key)
-            value = unquote(value)
-            if key == "user":
-                params[key] = value
-            elif key in ("auth_date", "can_send_after"):
-                params[key] = value
-            else:
-                params[key] = value
+            raw_pairs[key] = value
 
-        received_hash = params.pop("hash", None)
+        received_hash = raw_pairs.pop("hash", None)
         if not received_hash:
             return AuthResult(
                 error_code=AuthError.MISSING_HASH,
                 detail="No hash in initData",
             )
 
+        # Build data_check_string from RAW (URL-encoded) pairs, sorted by key
         data_check_pairs = []
-        for key in sorted(params.keys()):
-            val = params[key]
-            if isinstance(val, list):
-                for item in val:
-                    data_check_pairs.append(f"{key}={item}")
-            else:
-                data_check_pairs.append(f"{key}={val}")
-
+        for key in sorted(raw_pairs.keys()):
+            data_check_pairs.append(f"{key}={raw_pairs[key]}")
         data_check_string = "\n".join(data_check_pairs)
 
+        # Compute HMAC
         secret_key = hmac.new(
             b"WebAppData",
             bot_token.encode("utf-8"),
@@ -87,7 +76,8 @@ def validate_telegram_init_data(init_data: str, bot_token: str) -> AuthResult:
             print(
                 f"[AUTH] HMAC mismatch: computed_prefix={computed_hash[:16]}, "
                 f"received_prefix={received_hash[:16]}, "
-                f"pairs={len(data_check_pairs)}",
+                f"pairs_count={len(data_check_pairs)}, "
+                f"token_prefix={bot_token[:15]}",
                 flush=True,
             )
             return AuthResult(
@@ -95,6 +85,13 @@ def validate_telegram_init_data(init_data: str, bot_token: str) -> AuthResult:
                 detail="Data integrity check failed",
             )
 
+        # Now decode values for business logic (after HMAC check passed)
+        from urllib.parse import unquote
+        params = {}
+        for key, value in raw_pairs.items():
+            params[key] = unquote(value)
+
+        # Check auth_date freshness
         auth_date = params.get("auth_date")
         if auth_date:
             try:
@@ -108,6 +105,7 @@ def validate_telegram_init_data(init_data: str, bot_token: str) -> AuthResult:
             except (ValueError, TypeError):
                 pass
 
+        # Parse user data
         result = {}
         for key, value in params.items():
             if key == "user":
