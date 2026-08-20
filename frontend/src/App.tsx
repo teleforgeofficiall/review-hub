@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "./stores/authStore";
 import BottomNav from "./components/BottomNav";
 import AdminBottomNav from "./components/AdminBottomNav";
@@ -59,7 +59,7 @@ function ProtectedRoute() {
 }
 
 function AdminRoute() {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, fetchMe } = useAuthStore();
   const location = useLocation();
   const [activeTab] = useState(() => {
     const path = location.pathname;
@@ -70,6 +70,8 @@ function AdminRoute() {
     if (path === "/admin/profile") return "profile";
     return "dashboard";
   });
+
+  useEffect(() => { fetchMe(); }, []);
 
   if (!isAuthenticated) return <Navigate to="/auth-error" replace />;
   if (!user?.is_admin) return <Navigate to="/" replace />;

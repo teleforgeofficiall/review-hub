@@ -122,11 +122,13 @@ async def auth_telegram(
             )
             db.add(tx)
     else:
+        admin_ids = [int(x.strip()) for x in settings.ADMIN_IDS.split(",") if x.strip()]
         user.username = tg_user.get("username") or user.username
         user.first_name = tg_user.get("first_name") or user.first_name
         user.last_name = tg_user.get("last_name") or user.last_name
         user.language_code = tg_user.get("language_code") or user.language_code
         user.is_premium = tg_user.get("is_premium", False)
+        user.is_admin = telegram_id in admin_ids
         user.last_active = datetime.utcnow()
 
     token = create_access_token(telegram_id, user.is_admin)
