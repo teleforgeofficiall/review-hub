@@ -9,11 +9,6 @@ interface Stats {
   total_balance: number;
 }
 
-interface Task {
-  id: number;
-  variant?: string;
-}
-
 interface RecentSub {
   id: number;
   user_id: number;
