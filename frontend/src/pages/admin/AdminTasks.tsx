@@ -326,31 +326,26 @@ export default function AdminTasks() {
   return (
     <div className="pt-3 pb-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2.5">
+      <div className="flex items-center justify-between mb-3">
         <h1 className="text-lg font-bold" style={{ color: "#191c1e" }}>Tasks</h1>
-        <button onClick={openCreate} className="btn-3d flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold">
-          <span className="material-symbols-outlined text-sm">add</span>Add
+        <button onClick={openCreate} className="btn-3d flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold">
+          <span className="material-symbols-outlined text-[16px]">add</span>Add
         </button>
       </div>
 
       {/* Search */}
-      <div className="relative mb-2.5">
-        <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: "#4a4455" }}>search</span>
+      <div className="relative mb-3">
+        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px]" style={{ color: "#7b7487" }}>search</span>
         <input type="text" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-8 pr-3 py-2 rounded-lg text-[12px] outline-none"
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl text-[13px] outline-none"
           style={{ background: "#fff", border: "1px solid #e0e0e0", color: "#191c1e" }} />
       </div>
 
       {/* Filter pills */}
-      <div className="flex gap-1.5 pb-2.5 overflow-x-auto hide-scroll">
+      <div className="flex gap-2 pb-3 overflow-x-auto hide-scroll">
         {["All", "Gmail", "Apps", "Maps"].map((c) => (
           <button key={c} onClick={() => setFilter(c)}
-            className="px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap flex-shrink-0"
-            style={{
-              background: filter === c ? "#4800a0" : "#fff",
-              color: filter === c ? "#fff" : "#4a4455",
-              border: filter === c ? "none" : "1px solid #e0e0e0",
-            }}
+            className={`filter-pill ${filter === c ? "filter-pill-active" : "filter-pill-inactive"}`}
           >{c}</button>
         ))}
       </div>

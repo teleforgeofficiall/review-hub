@@ -152,7 +152,7 @@ export default function WalletPage() {
       </div>
 
       {/* Transaction History */}
-      <div className="mt-auto">
+      <div>
         <h3 className="text-[16px] font-bold mb-2" style={{ color: "#191c1e" }}>Recent Transactions</h3>
         {loading ? (
           <div className="flex flex-col gap-2">

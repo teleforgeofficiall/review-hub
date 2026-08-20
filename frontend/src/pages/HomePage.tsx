@@ -17,23 +17,24 @@ export default function HomePage() {
   return (
     <>
       {/* Profile Greeting */}
-      <div className="glass-card rounded-xl p-4 mb-3 flex items-center gap-3">
+      <div className="glass-card rounded-2xl p-5 mb-4 flex items-center gap-4">
         <div
-          className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0"
+          className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
           style={{
             background: "linear-gradient(135deg, #7c3aed, #630ed4)",
-            boxShadow: "inset 0px 2px 4px rgba(255,255,255,0.3), 0 4px 12px rgba(99,14,212,0.2)",
+            boxShadow: "inset 0px 2px 4px rgba(255,255,255,0.3), 0 6px 16px rgba(99,14,212,0.3)",
+            border: "3px solid rgba(255,255,255,0.5)",
           }}
         >
-          <span className="text-xl font-bold text-white">{user?.first_name?.[0] || "?"}</span>
+          <span className="text-2xl font-bold text-white">{user?.first_name?.[0] || "?"}</span>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] leading-tight" style={{ color: "#4a4455" }}>Welcome back,</p>
-          <h2 className="text-[16px] font-bold leading-tight truncate" style={{ color: "#191c1e" }}>
+          <p className="text-[12px] leading-tight mb-0.5" style={{ color: "#7b7487" }}>Welcome back,</p>
+          <h2 className="text-[18px] font-bold leading-tight truncate" style={{ color: "#191c1e" }}>
             {user?.first_name} {user?.last_name}
           </h2>
           {user?.username && (
-            <p className="text-[12px] font-semibold leading-tight truncate" style={{ color: "#7c3aed" }}>
+            <p className="text-[13px] font-semibold leading-tight truncate" style={{ color: "#7c3aed" }}>
               @{user.username}
             </p>
           )}
@@ -41,55 +42,55 @@ export default function HomePage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="glass-card rounded-xl p-3 flex flex-col items-center justify-center">
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="glass-card rounded-2xl p-4 flex flex-col items-center justify-center">
           <span
-            className="material-symbols-outlined text-[20px] mb-0.5"
+            className="material-symbols-outlined text-[24px] mb-1"
             style={{ color: "#630ed4", fontVariationSettings: "'FILL' 1" }}
           >
             account_balance_wallet
           </span>
-          <p className="text-[10px] font-medium leading-tight mb-0.5" style={{ color: "#4a4455" }}>Balance</p>
-          <p className="text-[16px] font-extrabold leading-tight">
+          <p className="text-[11px] font-medium leading-tight mb-1" style={{ color: "#7b7487" }}>Balance</p>
+          <p className="text-[18px] font-extrabold leading-tight">
             {fmt(user?.balance || 0)}{" "}
-            <span className="text-[10px] font-medium" style={{ color: "#7b7487" }}>INR</span>
+            <span className="text-[11px] font-medium" style={{ color: "#7b7487" }}>INR</span>
           </p>
         </div>
-        <div className="glass-card rounded-xl p-3 flex flex-col items-center justify-center">
+        <div className="glass-card rounded-2xl p-4 flex flex-col items-center justify-center">
           <span
-            className="material-symbols-outlined text-[20px] mb-0.5"
+            className="material-symbols-outlined text-[24px] mb-1"
             style={{ color: "#6b38d4", fontVariationSettings: "'FILL' 1" }}
           >
             task_alt
           </span>
-          <p className="text-[10px] font-medium leading-tight mb-0.5" style={{ color: "#4a4455" }}>Tasks Done</p>
-          <p className="text-[16px] font-extrabold leading-tight" style={{ color: "#191c1e" }}>
+          <p className="text-[11px] font-medium leading-tight mb-1" style={{ color: "#7b7487" }}>Tasks Done</p>
+          <p className="text-[18px] font-extrabold leading-tight" style={{ color: "#191c1e" }}>
             {user?.tasks_completed || 0}
           </p>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <h3 className="text-[16px] font-bold mb-2.5" style={{ color: "#191c1e" }}>Quick Actions</h3>
-      <div className="flex gap-3 overflow-x-auto hide-scroll pb-1">
+      <h3 className="text-[18px] font-bold mb-3" style={{ color: "#191c1e" }}>Quick Actions</h3>
+      <div className="grid grid-cols-3 gap-3">
         {actions.map((a) => (
           <button
             key={a.route}
             onClick={() => navigate(a.route)}
-            className="glass-card rounded-xl px-4 py-4 flex flex-col items-center gap-2 min-w-[100px] flex-shrink-0 active:scale-[0.96] transition-transform duration-150"
+            className="glass-card rounded-2xl p-4 flex flex-col items-center gap-3 active:scale-[0.96] transition-transform duration-150"
           >
             <div
-              className="w-11 h-11 rounded-full flex items-center justify-center"
+              className="w-14 h-14 rounded-full flex items-center justify-center"
               style={{ background: a.bg }}
             >
               <span
-                className="material-symbols-outlined text-[22px]"
+                className="material-symbols-outlined text-[26px]"
                 style={{ color: a.fg, fontVariationSettings: "'FILL' 1" }}
               >
                 {a.icon}
               </span>
             </div>
-            <span className="text-[12px] font-bold text-center leading-tight" style={{ color: "#191c1e" }}>
+            <span className="text-[13px] font-bold text-center leading-tight" style={{ color: "#191c1e" }}>
               {a.label}
             </span>
           </button>

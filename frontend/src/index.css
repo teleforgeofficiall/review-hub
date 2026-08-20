@@ -72,6 +72,19 @@ body {
 }
 
 .material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'liga';
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
@@ -83,8 +96,8 @@ body {
 .glass-card {
   background: linear-gradient(145deg, #FFFFFF, #F8F9FC);
   border: 1px solid rgba(124, 58, 237, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
-  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.03);
+  border-radius: 16px;
 }
 
 /* === Purple Gradient Card === */
@@ -166,9 +179,9 @@ textarea.app-input {
 .badge-primary {
   background: rgba(124, 58, 237, 0.1);
   border: 1px solid rgba(124, 58, 237, 0.2);
-  border-radius: 8px;
-  padding: 3px 10px;
-  font-size: 12px;
+  border-radius: 10px;
+  padding: 4px 12px;
+  font-size: 13px;
   font-weight: 700;
   color: #630ed4;
   white-space: nowrap;
@@ -214,9 +227,9 @@ textarea.app-input {
 
 /* === Filter Pill === */
 .filter-pill {
-  padding: 7px 16px;
+  padding: 9px 20px;
   border-radius: 9999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
@@ -262,20 +275,15 @@ textarea.app-input {
 .app-scroll-content {
   max-width: 420px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 16px 16px;
   padding-bottom: calc(72px + var(--tg-safe-area-inset-bottom, 0px));
 }
 
 /* === Page Stretch === */
 .page-stretch {
-  min-height: calc(
-    var(--tg-viewport-stable-height, 100dvh)
-    - 80px
-    - var(--tg-content-safe-area-inset-top, 0px)
-    - var(--tg-safe-area-inset-bottom, 0px)
-  );
   display: flex;
   flex-direction: column;
+  gap: 0;
 }
 
 /* === Top App Bar === */
@@ -298,8 +306,9 @@ textarea.app-input {
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   width: 100%;
   max-width: 420px;
   z-index: 50;
@@ -314,6 +323,7 @@ textarea.app-input {
   height: 64px;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   transition: transform 0.3s ease;
+  overflow: hidden;
 }
 
 .nav-btn {
@@ -322,13 +332,15 @@ textarea.app-input {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 6px 12px;
+  padding: 6px 8px;
   border-radius: 12px;
   transition: all 0.2s ease;
   cursor: pointer;
   background: none;
   border: none;
   color: var(--color-on-surface-variant);
+  min-width: 0;
+  flex: 1;
 }
 
 .nav-btn:active {
@@ -349,6 +361,10 @@ textarea.app-input {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 64px;
 }
 
 /* === Modal Overlay === */
