@@ -1,23 +1,64 @@
 import hashlib
 import hmac
 import json
-from urllib.parse import urlparse, parse_qsl
+import time
+from urllib.parse import unquote
 
 
-def validate_telegram_init_data(init_data: str, bot_token: str) -> dict | None:
+class AuthError:
+    MISSING_HASH = "MISSING_HASH"
+    HMAC_MISMATCH = "HMAC_MISMATCH"
+    AUTH_EXPIRED = "AUTH_EXPIRED"
+    INVALID_USER_DATA = "INVALID_USER_DATA"
+    BOT_TOKEN_MISSING = "BOT_TOKEN_MISSING"
+    PARSE_ERROR = "PARSE_ERROR"
+
+
+class AuthResult:
+    def __init__(self, success=False, data=None, error_code=None, detail=None):
+        self.success = success
+        self.data = data
+        self.error_code = error_code
+        self.detail = detail
+
+    def __bool__(self):
+        return self.success
+
+
+def validate_telegram_init_data(init_data: str, bot_token: str) -> AuthResult:
     try:
-        print(f"[TG] initData first200={init_data[:200]}", flush=True)
-        print(f"[TG] initData length={len(init_data)}", flush=True)
+        if not bot_token:
+            return AuthResult(
+                error_code=AuthError.BOT_TOKEN_MISSING,
+                detail="Server BOT_TOKEN not configured",
+            )
 
-        parsed = urlparse(f"https://t.me/?{init_data}")
-        params = dict(parse_qsl(parsed.query))
+        if not init_data:
+            return AuthResult(
+                error_code=AuthError.PARSE_ERROR,
+                detail="Empty init_data",
+            )
 
-        print(f"[TG] params keys={list(params.keys())}", flush=True)
+        params = {}
+        for pair in init_data.split("&"):
+            if "=" not in pair:
+                continue
+            key, value = pair.split("=", 1)
+            key = unquote(key)
+            value = unquote(value)
+            if key == "user":
+                params[key] = value
+            elif key in ("auth_date", "can_send_after"):
+                params[key] = value
+            else:
+                params[key] = value
 
         received_hash = params.pop("hash", None)
         if not received_hash:
-            print("[TG] ERROR: No hash found", flush=True)
-            return None
+            return AuthResult(
+                error_code=AuthError.MISSING_HASH,
+                detail="No hash in initData",
+            )
 
         data_check_pairs = []
         for key in sorted(params.keys()):
@@ -29,7 +70,6 @@ def validate_telegram_init_data(init_data: str, bot_token: str) -> dict | None:
                 data_check_pairs.append(f"{key}={val}")
 
         data_check_string = "\n".join(data_check_pairs)
-        print(f"[TG] data_check_string first300={data_check_string[:300]}", flush=True)
 
         secret_key = hmac.new(
             b"WebAppData",
@@ -43,17 +83,41 @@ def validate_telegram_init_data(init_data: str, bot_token: str) -> dict | None:
             hashlib.sha256,
         ).hexdigest()
 
-        print(f"[TG] computed={computed_hash}", flush=True)
-        print(f"[TG] received={received_hash}", flush=True)
-        print(f"[TG] match={computed_hash == received_hash}", flush=True)
-
         if computed_hash != received_hash:
-            return None
+            print(
+                f"[AUTH] HMAC mismatch: computed_prefix={computed_hash[:16]}, "
+                f"received_prefix={received_hash[:16]}, "
+                f"pairs={len(data_check_pairs)}",
+                flush=True,
+            )
+            return AuthResult(
+                error_code=AuthError.HMAC_MISMATCH,
+                detail="Data integrity check failed",
+            )
+
+        auth_date = params.get("auth_date")
+        if auth_date:
+            try:
+                auth_ts = int(auth_date)
+                current_ts = int(time.time())
+                if (current_ts - auth_ts) > 86400:
+                    return AuthResult(
+                        error_code=AuthError.AUTH_EXPIRED,
+                        detail="Session expired (auth_date older than 24h)",
+                    )
+            except (ValueError, TypeError):
+                pass
 
         result = {}
         for key, value in params.items():
             if key == "user":
-                result["user"] = parse_user_data(value)
+                user_data = parse_user_data(value)
+                if not user_data:
+                    return AuthResult(
+                        error_code=AuthError.INVALID_USER_DATA,
+                        detail="Could not parse user data",
+                    )
+                result["user"] = user_data
             elif key == "auth_date":
                 result["auth_date"] = int(value)
             elif key == "chat_instance":
@@ -65,13 +129,22 @@ def validate_telegram_init_data(init_data: str, bot_token: str) -> dict | None:
             elif key == "can_send_after":
                 result["can_send_after"] = int(value)
 
-        return result
+        if "user" not in result:
+            return AuthResult(
+                error_code=AuthError.INVALID_USER_DATA,
+                detail="No user in initData",
+            )
+
+        return AuthResult(data=result)
 
     except Exception as e:
-        print(f"[TG] EXCEPTION: {type(e).__name__}: {e}", flush=True)
+        print(f"[AUTH] EXCEPTION: {type(e).__name__}: {e}", flush=True)
         import traceback
         traceback.print_exc()
-        return None
+        return AuthResult(
+            error_code=AuthError.PARSE_ERROR,
+            detail=f"Unexpected error: {type(e).__name__}",
+        )
 
 
 def parse_user_data(user_json: str) -> dict | None:
@@ -82,6 +155,5 @@ def parse_user_data(user_json: str) -> dict | None:
 
 
 def check_auth_date(auth_date: int, max_age_seconds: int = 86400) -> bool:
-    import time
     current_time = int(time.time())
     return (current_time - auth_date) <= max_age_seconds

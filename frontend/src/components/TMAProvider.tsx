@@ -29,6 +29,43 @@ declare global {
   }
 }
 
+function getErrorMessage(code: string): { title: string; message: string } {
+  const map: Record<string, { title: string; message: string }> = {
+    MISSING_HASH: {
+      title: "Session Data Error",
+      message: "Missing session signature. Please close and reopen from Telegram.",
+    },
+    HMAC_MISMATCH: {
+      title: "Session Corrupted",
+      message: "Session data was modified. Please close and reopen from Telegram.",
+    },
+    AUTH_EXPIRED: {
+      title: "Session Expired",
+      message: "Your session expired. Reopening from Telegram...",
+    },
+    BOT_TOKEN_MISSING: {
+      title: "Server Error",
+      message: "Server configuration issue. Please contact support.",
+    },
+    BOT_TOKEN_MISMATCH: {
+      title: "Server Error",
+      message: "Server configuration issue. Please contact support.",
+    },
+    INVALID_USER_DATA: {
+      title: "Invalid User Data",
+      message: "Could not verify your identity. Please reopen from Telegram.",
+    },
+    PARSE_ERROR: {
+      title: "Session Error",
+      message: "Invalid session data. Please reopen from Telegram.",
+    },
+  };
+  return map[code] || {
+    title: "Authentication Failed",
+    message: "Could not verify your Telegram identity. Please try again.",
+  };
+}
+
 function extractInitData(): string | null {
   try {
     if (window.Telegram?.WebApp?.initData) {
@@ -73,6 +110,7 @@ export function TMAProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, login, logout } = useAuthStore();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const initRef = useRef(false);
 
   useEffect(() => {
@@ -90,17 +128,33 @@ export function TMAProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     }
 
-    const attemptLogin = async (initData: string, attempt: number): Promise<boolean> => {
+    const attemptLogin = async (
+      initData: string,
+      attempt: number,
+    ): Promise<{ success: boolean; errorCode?: string }> => {
       try {
         await login(initData);
-        return true;
+        return { success: true };
       } catch (err: any) {
-        console.error(`[AUTH] Login attempt ${attempt} failed:`, err?.response?.status, err?.response?.data || err?.message);
+        const errorData = err?.response?.data?.detail;
+        const errorCode =
+          typeof errorData === "object" ? errorData.error_code : undefined;
+        console.error(
+          `[AUTH] Login attempt ${attempt} failed:`,
+          err?.response?.status,
+          errorCode || err?.response?.data || err?.message,
+        );
+
+        if (errorCode === "AUTH_EXPIRED" || errorCode === "MISSING_HASH") {
+          window.Telegram?.WebApp?.close();
+          return { success: false, errorCode };
+        }
+
         if (attempt < MAX_RETRIES) {
           await new Promise((r) => setTimeout(r, RETRY_DELAY * attempt));
           return attemptLogin(initData, attempt + 1);
         }
-        return false;
+        return { success: false, errorCode };
       }
     };
 
@@ -137,9 +191,10 @@ export function TMAProvider({ children }: { children: React.ReactNode }) {
       // Case 2: initData available → authenticate with backend
       if (initData) {
         console.log("[AUTH] Authenticating with initData...");
-        const success = await attemptLogin(initData, 1);
-        if (!success) {
+        const result = await attemptLogin(initData, 1);
+        if (!result.success) {
           setError("AUTH_FAILED");
+          setErrorCode(result.errorCode || null);
         }
         setReady(true);
         return;
@@ -183,32 +238,49 @@ export function TMAProvider({ children }: { children: React.ReactNode }) {
   }
 
   if (error && !isAuthenticated) {
+    const isNoInitData = error === "NO_INIT_DATA";
+    const errInfo = isNoInitData
+      ? { title: "Open in Telegram", message: "This app must be opened from Telegram. Tap the Open App button in the bot chat." }
+      : getErrorMessage(errorCode || "UNKNOWN");
+    const isRetryable = isNoInitData || !errorCode || !["BOT_TOKEN_MISSING", "BOT_TOKEN_MISMATCH"].includes(errorCode);
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "#f8f9fc" }}>
         <div className="glass-card rounded-xl p-8 text-center max-w-sm w-full">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: error === "NO_INIT_DATA" ? "rgba(124,58,237,0.1)" : "rgba(239,68,68,0.1)" }}>
-            <span className="material-symbols-outlined text-3xl" style={{ color: error === "NO_INIT_DATA" ? "#7c3aed" : "#ef4444" }}>
-              {error === "NO_INIT_DATA" ? "smartphone" : "error"}
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ background: isNoInitData ? "rgba(124,58,237,0.1)" : "rgba(239,68,68,0.1)" }}
+          >
+            <span
+              className="material-symbols-outlined text-3xl"
+              style={{ color: isNoInitData ? "#7c3aed" : "#ef4444" }}
+            >
+              {isNoInitData ? "smartphone" : "error"}
             </span>
           </div>
           <h2 className="text-xl font-bold mb-2" style={{ color: "#191c1e" }}>
-            {error === "NO_INIT_DATA" ? "Open in Telegram" : "Authentication Failed"}
+            {errInfo.title}
           </h2>
           <p className="text-sm mb-6" style={{ color: "#4a4455" }}>
-            {error === "NO_INIT_DATA"
-              ? "This app must be opened from Telegram. Tap the Open App button in the bot chat."
-              : "Could not verify your Telegram identity. Please try again."}
+            {errInfo.message}
           </p>
-          <button
-            onClick={() => {
-              localStorage.removeItem("rh_token");
-              localStorage.removeItem("rh_user");
-              window.location.reload();
-            }}
-            className="w-full btn-3d rounded-xl py-3 text-base font-bold"
-          >
-            Retry
-          </button>
+          {isRetryable && (
+            <button
+              onClick={() => {
+                localStorage.removeItem("rh_token");
+                localStorage.removeItem("rh_user");
+                window.location.reload();
+              }}
+              className="w-full btn-3d rounded-xl py-3 text-base font-bold"
+            >
+              Retry
+            </button>
+          )}
+          {!isRetryable && (
+            <p className="text-xs mt-2" style={{ color: "#9ca3af" }}>
+              Error code: {errorCode}
+            </p>
+          )}
         </div>
       </div>
     );

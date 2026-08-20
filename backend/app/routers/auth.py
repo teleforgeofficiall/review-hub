@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.models.user import User
 from app.schemas.auth import TelegramAuthRequest, AuthResponse, UserResponse
-from app.utils.telegram import validate_telegram_init_data, check_auth_date
+from app.utils.telegram import validate_telegram_init_data, check_auth_date, AuthError
 from app.utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -35,26 +35,44 @@ async def auth_telegram(
     start_param: str = Query(None, alias="start"),
 ):
     logger.info(f"[AUTH] initData length={len(req.initData)}, first100={req.initData[:100]}")
-    user_data = validate_telegram_init_data(req.initData, settings.BOT_TOKEN)
-    if not user_data:
-        logger.error(f"[AUTH] Validation failed for initData length={len(req.initData)}")
+    result = validate_telegram_init_data(req.initData, settings.BOT_TOKEN)
+
+    if not result.success:
+        logger.error(
+            f"[AUTH] Validation failed: code={result.error_code}, "
+            f"detail={result.detail}, initData_len={len(req.initData)}"
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Telegram data",
+            detail={
+                "error_code": result.error_code,
+                "detail": result.detail,
+                "retryable": result.error_code != AuthError.BOT_TOKEN_MISSING,
+            },
         )
+
+    user_data = result.data
 
     auth_date = user_data.get("auth_date", 0)
     if not check_auth_date(auth_date):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Telegram data expired",
+            detail={
+                "error_code": AuthError.AUTH_EXPIRED,
+                "detail": "Session expired",
+                "retryable": True,
+            },
         )
 
     tg_user = user_data.get("user")
     if not tg_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing user data",
+            detail={
+                "error_code": AuthError.INVALID_USER_DATA,
+                "detail": "Missing user data",
+                "retryable": False,
+            },
         )
 
     telegram_id = tg_user["id"]
